@@ -1,4 +1,5 @@
 import alpaca_trade_api as tradeapi
+import os
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
@@ -15,8 +16,9 @@ use_magic_100 = True
 stock_data = stock_data_1 + stock_data_2
 if(use_magic_100):
     stock_data = magic_100
-api_key = 'REDACTED'
-api_secret = 'REDACTED'
+api_key = os.getenv('ALPACA_API_KEY')
+api_secret = os.getenv('ALPACA_API_SECRET')
+api_url = os.getenv('ALPACA_API_URL', 'https://paper-api.alpaca.markets')
 
 class StockData:
     def __init__(self, symbol, description):
@@ -25,7 +27,7 @@ class StockData:
 
 class AlpacaTradingBot:
     def __init__(self):
-        self.alpaca = tradeapi.REST(api_key, api_secret, base_url='https://paper-api.alpaca.markets') 
+        self.alpaca = tradeapi.REST(api_key, api_secret, base_url=api_url) 
         self.selected_stocks = []
         self.trading_decision = TradingDecision()
 
