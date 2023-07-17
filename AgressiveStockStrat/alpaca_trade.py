@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import pytz
 from trading_logic import TradingDecision
 import math
-from alpaca_trade_api.rest import APIError  # Import the exception
+from alpaca_trade_api.rest import APIError
 
 from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
@@ -37,13 +37,12 @@ class AlpacaTradingBot:
     def update_cash_available(self):
         self.cash_available = float(self.account.cash)
 
-
     def on_data(self):
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         cash_per_stock = self.cash_available * allocation_per_stock
 
         exceptions = []
-        # Handle selling transactions
+        
         for stock in sorted_stocks:
             target_quantity = int(cash_per_stock / stock.last_sale_price)
             position = None
@@ -52,15 +51,20 @@ class AlpacaTradingBot:
             except:
                 pass
             current_quantity = position.qty if position else 0
-            if target_quantity >= current_quantity:
-                continue
-            qty = current_quantity - target_quantity
-            if qty > 0:
+
+            if target_quantity != current_quantity:
+                qty = abs(target_quantity - current_quantity)
+                side = 'buy' if target_quantity > current_quantity else 'sell'
+
+                if side == 'buy' and qty * stock.last_sale_price > self.cash_available:
+                    exceptions.append(f"Insufficient cash to buy {stock.symbol}")
+                    continue
+
                 try:
                     self.alpaca.submit_order(
                         symbol=stock.symbol,
                         qty=qty,
-                        side='sell',
+                        side=side,
                         type='market',
                         time_in_force='gtc'
                     )
@@ -71,36 +75,11 @@ class AlpacaTradingBot:
                     else:
                         exceptions.append(str(e))
         
-        # Update cash after selling
-        self.update_cash_available()
-        
-        # Handle buying transactions
-        for stock in sorted_stocks:
-            target_quantity = int(cash_per_stock / stock.last_sale_price)
-            position = None
-            try:
-                position = self.alpaca.get_position(stock.symbol)
-            except:
-                pass
-            current_quantity = position.qty if position else 0
-            if target_quantity <= current_quantity:
-                continue
-            qty = target_quantity - current_quantity
-            if qty * stock.last_sale_price <= self.cash_available:
-                try:
-                    self.alpaca.submit_order(
-                        symbol=stock.symbol,
-                        qty=qty,
-                        side='buy',
-                        type='market',
-                        time_in_force='gtc'
-                    )
-                    self.update_cash_available()
-                except APIError as e:
-                    exceptions.append(str(e))
-        
         if exceptions:
-            raise Exception('; '.join(exceptions))
+            if any("Insufficient" not in e for e in exceptions):
+                raise Exception('; '.join(exceptions))
+            else:
+                print(f"Exceptions occurred: {', '.join(exceptions)}")
 
     def load_stock_data(self):
         for stock in stock_data:
