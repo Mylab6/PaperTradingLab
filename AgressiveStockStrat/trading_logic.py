@@ -16,10 +16,6 @@ class TradingDecision:
             if hasattr(stock, 'Price'):
                 stock.last_sale_price = stock.Price
             
-            # log out all properties of the stock, dynamically get them     
-            for prop in dir(stock):
-                print(prop)
-                print(getattr(stock, prop))
 
             
             

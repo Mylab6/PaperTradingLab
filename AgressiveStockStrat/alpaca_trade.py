@@ -2,10 +2,13 @@ import alpaca_trade_api as tradeapi
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-from stocks import stock_data
 from trading_logic import TradingDecision
 import math
+from s_and_p_first_half import stock_data as stock_data_1
+from s_and_p_second_half import stock_data as stock_data_2
 
+# combine the two lists of stock data
+stock_data = stock_data_1 + stock_data_2
 api_key = 'REDACTED'
 api_secret = 'REDACTED'
 
@@ -76,8 +79,8 @@ class AlpacaTradingBot:
     def load_stock_data(self):
         for stock in stock_data:
             try:
-                symbol = stock['symbol']
-                description = stock['description']
+                symbol = stock['Symbol']
+                description = stock['Security']
                 last_trade = self.alpaca.get_latest_trade(symbol)
                 equity = StockData(symbol, description)
                 equity.last_sale_price = last_trade.price
