@@ -51,7 +51,7 @@ class AlpacaTradingBot:
             except:
                 pass
             current_quantity = position.qty if position else 0
-
+            current_quantity = int(current_quantity)
             if target_quantity != current_quantity:
                 qty = abs(target_quantity - current_quantity)
                 side = 'buy' if target_quantity > current_quantity else 'sell'
