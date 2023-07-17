@@ -12,6 +12,10 @@ class TradingDecision:
     def get_sorted_stocks(self, stocks, top_n=11):
         # log out all the stock prices 
         for stock in stocks:
+            # if stock.Price , stock.last_sale_price = stock.Price 
+            if hasattr(stock, 'Price'):
+                stock.last_sale_price = stock.Price
+            
             # log out all properties of the stock, dynamically get them     
             for prop in dir(stock):
                 print(prop)
