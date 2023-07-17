@@ -2,7 +2,7 @@ name: Run Alpaca Trading Bot
 
 on:
   schedule:
-    - cron: '0 12 * * 1-5'  # run at noon on weekdays
+    - cron: '0 17 * * 1-5'  # run at noon on weekdays
   workflow_dispatch:  # manual trigger
 
 jobs:
