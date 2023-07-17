@@ -33,8 +33,8 @@ class QuantConnectBacktester(QCAlgorithm):
 
     def LoadStockData(self):
         for stock in stock_data:
-            symbol = stock['symbol']
-            description = stock['description']
+            symbol = stock['Symbol']
+            description = stock['Security']
             equity = self.AddEquity(symbol, Resolution.Minute)
             equity.Tag = StockData(symbol, description)
             self.selected_stocks.append(equity)
