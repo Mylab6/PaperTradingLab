@@ -16,7 +16,7 @@ class StockData:
 
 class QuantConnectBacktester(QCAlgorithm):
     def Initialize(self):
-        self.SetStartDate(2023, 5, 15)  # Set Start Date
+        self.SetStartDate(2020, 5, 15)  # Set Start Date
         self.SetCash(100000)  # Set Strategy Cash
         self.SetBenchmark("SPY")
 
@@ -32,15 +32,8 @@ class QuantConnectBacktester(QCAlgorithm):
         if self.trading_decision.should_rebalance(self.Time):
             sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
 
-            # First sell
             for stock in sorted_stocks:
-                if self.Portfolio[stock.Symbol].IsLong and self.Portfolio[stock.Symbol].Quantity > allocation_per_stock:
-                    self.SetHoldings(stock.Symbol, 0)
-
-            # Then buy
-            for stock in sorted_stocks:
-                if self.Portfolio[stock.Symbol].Quantity < allocation_per_stock and self.Portfolio.Cash > 0:
-                    self.SetHoldings(stock.Symbol, allocation_per_stock)
+                self.SetHoldings(stock.Symbol, allocation_per_stock)
 
     def LoadStockData(self):
         for stock in stock_data:
