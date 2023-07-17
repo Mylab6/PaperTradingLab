@@ -20,5 +20,5 @@ class TradingDecision:
             
             
         sorted_stocks = sorted(stocks, key=lambda stock: stock.last_sale_price, reverse=True)[:top_n]
-        allocation_per_stock = min(0.1, 2.0 / len(sorted_stocks))
+        allocation_per_stock = min(0.15, 2.0 / len(sorted_stocks))
         return sorted_stocks, allocation_per_stock
