@@ -1,3 +1,8 @@
+# Magic 100
+# Has serveral dupe stocks
+# But for whatever reason it really does well in back testing
+# Probably because it has a lot of stocks that are doing well, compared to the SP500
+# Which is more of a mixed bag  , 43.41% return from 2021, 5, 15 to 2023 7, 15
 
 stock_data = [
     {"Symbol": "AAPL", "Security": "Apple Inc."},

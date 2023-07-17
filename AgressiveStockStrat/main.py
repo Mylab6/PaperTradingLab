@@ -19,6 +19,8 @@ class QuantConnectBacktester(QCAlgorithm):
     def Initialize(self):
         self.SetStartDate(2023, 5, 15)  # Set Start Date
         self.SetCash(100000)  # Set Strategy Cash
+        self.SetBenchmark("SPY")
+
 
         self.selected_stocks = []  # Define selected_stocks before calling LoadStockData
         self.trading_decision = TradingDecision()
