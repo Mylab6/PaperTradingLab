@@ -8,7 +8,11 @@ from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
 
 # combine the two lists of stock data
+from stocks import stock_data as magic_100
+use_magic_100 = True
 stock_data = stock_data_1 + stock_data_2
+if(use_magic_100):
+    stock_data = magic_100
 api_key = 'REDACTED'
 api_secret = 'REDACTED'
 
@@ -34,14 +38,15 @@ class AlpacaTradingBot:
     def on_data(self):
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
     
-    # Calculate the cash allocated for each stock
+        # Calculate the cash allocated for each stock
         cash_per_stock = self.cash_available * allocation_per_stock
 
         exceptions = []
+        # First, handle selling
         for stock in sorted_stocks:
-        # Calculate quantity for each stock
+            # Calculate quantity for each stock
             target_quantity = int(cash_per_stock / stock.last_sale_price) 
-        # Get current quantity of this stock
+            # Get current quantity of this stock
             position = None
             try:
                 position = self.alpaca.get_position(stock.symbol)
@@ -49,26 +54,54 @@ class AlpacaTradingBot:
                 pass
             current_quantity = position.qty if position else 0
 
-        # Do nothing if target quantity equals current quantity
-            if target_quantity == current_quantity:
+            # If current quantity is less or equal to target, do nothing
+            if current_quantity <= target_quantity:
                 continue
 
-            side = 'buy' if target_quantity > current_quantity else 'sell'
-            qty = abs(target_quantity - current_quantity)
+            qty = current_quantity - target_quantity
 
-        # Check if we have enough money to buy
-            if side == 'buy' and qty * stock.last_sale_price > self.cash_available:
+            try:
+                self.alpaca.submit_order(
+                    symbol=stock.symbol,
+                    qty=qty,
+                    side='sell',
+                    type='market',
+                    time_in_force='gtc'
+                )
+                # Update cash available after each successful trade
+                self.update_cash_available()
+            except Exception as e:
+                exceptions.append(str(e))
+
+        # Then, handle buying
+        for stock in sorted_stocks:
+            target_quantity = int(cash_per_stock / stock.last_sale_price) 
+            position = None
+            try:
+                position = self.alpaca.get_position(stock.symbol)
+            except:
+                pass
+            current_quantity = position.qty if position else 0
+
+            # If current quantity is greater or equal to target, do nothing
+            if current_quantity >= target_quantity:
+                continue
+
+            qty = target_quantity - current_quantity
+
+            # Check if we have enough money to buy
+            if qty * stock.last_sale_price > self.cash_available:
                 continue
 
             try:
                 self.alpaca.submit_order(
-                symbol=stock.symbol,
-                qty=qty,
-                side=side,
-                type='market',
-                time_in_force='gtc'
-            )
-            # Update cash available after each successful trade
+                    symbol=stock.symbol,
+                    qty=qty,
+                    side='buy',
+                    type='market',
+                    time_in_force='gtc'
+                )
+                # Update cash available after each successful trade
                 self.update_cash_available()
             except Exception as e:
                 exceptions.append(str(e))
