@@ -5,7 +5,11 @@ from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
 
 # combine the two lists of stock data
+from stocks import stock_data as magic_100
+use_magic_100 = True
 stock_data = stock_data_1 + stock_data_2
+if(use_magic_100):
+    stock_data = magic_100
 class StockData:
     def __init__(self, symbol, description):
         self.symbol = symbol
