@@ -46,6 +46,7 @@ stock_data = [{'Symbol': 'AAPL', 'Security': 'Apple Inc.'},
               {'Symbol': 'AMGN', 'Security': 'Amgen Inc.'}, 
               {'Symbol': 'WFC', 'Security': 'Wells Fargo & Company'},
               {'Symbol': 'LMT', 'Security': 'Lockheed Martin Corporation'},
+              # This isn't a dupe, these two Google stocks may trade differently at different prices
               {'Symbol': 'GOOG', 'Security': 'Alphabet Inc.'},
               {'Symbol': 'BRK-A', 'Security': 'Berkshire Hathaway Inc.'},
               {'Symbol': 'ADSK', 'Security': 'Autodesk, Inc.'},
