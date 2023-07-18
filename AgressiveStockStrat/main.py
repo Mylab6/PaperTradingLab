@@ -8,7 +8,7 @@ from stocks import additional_stock_data as additional_stock_data
 use_magic_100 = True
 use_extended_magic = True
 stock_data = stock_data_1 + stock_data_2
-get_diverse_stocks = True
+get_diverse_stocks = False
 if(use_magic_100):
     stock_data = magic_100
 if(use_extended_magic):
@@ -20,7 +20,7 @@ class StockData:
 
 class QuantConnectBacktester(QCAlgorithm):
     def Initialize(self):
-        self.SetStartDate(2018, 7, 17)  # Set Start Date
+        self.SetStartDate(2020, 7, 17)  # Set Start Date
         self.SetCash(100000)  # Set Strategy Cash
         self.SetBenchmark("SPY")
 
