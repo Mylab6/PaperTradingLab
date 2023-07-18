@@ -90,6 +90,7 @@ class AlpacaTradingBot:
                 description = stock['Security']
                 last_trade = self.alpaca.get_latest_trade(symbol)
                 equity = StockData(symbol, description)
+                equity.Sector = stock['Sector']
                 equity.last_sale_price = last_trade.price
                 self.selected_stocks.append(equity)
             except Exception as e:

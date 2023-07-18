@@ -6,6 +6,7 @@ from stocks import stock_data as magic_100
 
 use_magic_100 = True
 stock_data = stock_data_1 + stock_data_2
+get_diverse_stocks = True
 if(use_magic_100):
     stock_data = magic_100
 
@@ -16,7 +17,7 @@ class StockData:
 
 class QuantConnectBacktester(QCAlgorithm):
     def Initialize(self):
-        self.SetStartDate(2020, 5, 15)  # Set Start Date
+        self.SetStartDate(2018, 7, 17)  # Set Start Date
         self.SetCash(100000)  # Set Strategy Cash
         self.SetBenchmark("SPY")
 
@@ -30,8 +31,12 @@ class QuantConnectBacktester(QCAlgorithm):
 
     def OnData(self, data):
         if self.trading_decision.should_rebalance(self.Time):
+            
             sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
+            if get_diverse_stocks:
+                sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
 
+            
             for stock in sorted_stocks:
                 self.SetHoldings(stock.Symbol, allocation_per_stock)
 
@@ -41,4 +46,5 @@ class QuantConnectBacktester(QCAlgorithm):
             description = stock['Security']
             equity = self.AddEquity(symbol, Resolution.Minute)
             equity.Tag = StockData(symbol, description)
+            equity.Sector = stock['Sector']
             self.selected_stocks.append(equity)
