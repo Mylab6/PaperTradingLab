@@ -4,7 +4,7 @@ from AlgorithmImports import *
 class RandomCryptoAlgo(QCAlgorithm):
     def Initialize(self):
         self.SetStartDate(2023, 1, 1)  # Set start date for backtesting
-        self.SetEndDate(2023, 1, 31)  # Set end date for backtesting
+        self.SetEndDate(2023, 12, 31)  # Set end date for backtesting
         self.SetCash(100000)  # Set initial capital
 
         # Define a list of popular cryptocurrencies
@@ -12,32 +12,21 @@ class RandomCryptoAlgo(QCAlgorithm):
 
         # Set up data subscriptions for each popular coin
         for coin in self.popular_coins:
-            self.AddCrypto(coin, Resolution.Minute)
+            self.AddCrypto(coin, Resolution.Daily)
 
-        # Set up random number generator
-        self.random_generator = Random()
+        self.random = Random()
 
-    def OnData(self, data):
-        # Select a random coin from the list
-        random_coin = self.popular_coins[self.random_generator.Next(len(self.popular_coins))]
+        self.Schedule.On(self.DateRules.Every(DayOfWeek.Monday), self.TimeRules.At(0, 0), self.Rebalance)
 
-        # Check if there is data available for the selected coin
-        if random_coin in data.Keys:
-            coin_data = data[random_coin]
+    def Rebalance(self):
+        # Liquidate all positions
+        self.Liquidate()
 
-            # Get historical bars for the selected coin
-            history = []
-            for bar in self.History(random_coin, 120, Resolution.Minute):
-                history.append(bar)
+        # Get a random coin from the list
+        random_coin = self.popular_coins[self.random.Next(len(self.popular_coins))]
 
-            # Calculate the price change over the last 2 hours
-            if len(history) > 0:
-                price_change = coin_data.Close - history[-1].Open
+        # Invest in the random coin
+        self.SetHoldings(random_coin, 1)
 
-                # Check if the price has been going up over the last 2 hours
-                if price_change > 0:
-                    # Place a market order for the selected coin
-                    self.MarketOrder(random_coin, 1)
-
-                    # Print the order details to the console
-                    self.Debug(f"Placed market order for {random_coin} at {coin_data.Close}")
+    def OnData(self, slice):
+        pass
