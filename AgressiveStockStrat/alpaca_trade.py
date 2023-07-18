@@ -16,6 +16,7 @@ from stocks import additional_stock_data as additional_stock_data
 
 use_magic_100 = True
 use_extended_magic = True
+get_diverse_stocks = False
 stock_data = stock_data_1 + stock_data_2
 if(use_magic_100):
     stock_data = magic_100
@@ -46,6 +47,9 @@ class AlpacaTradingBot:
 
     def on_data(self):
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
+        if get_diverse_stocks:
+            sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
+        
         cash_per_stock = self.cash_available * allocation_per_stock
 
         exceptions = []
