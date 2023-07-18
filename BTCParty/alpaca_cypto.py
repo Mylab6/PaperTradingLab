@@ -23,7 +23,8 @@ class AlpacaTrader:
             print(type(bars))
             for b in bars:
                 print(bars[b])
-            hist_data[coin] = bars['coin'].set_index('t')
+            print(dir(bars))
+            hist_data[coin] = bars['S'].set_index('t')
 
         return hist_data
 
