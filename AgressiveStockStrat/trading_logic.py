@@ -11,7 +11,6 @@ class TradingDecision:
 
     def get_sorted_stocks(self, stocks, top_n=11):
         for stock in stocks:
-            # if stock.Price , stock.last_sale_price = stock.Price 
             if hasattr(stock, 'Price'):
                 stock.last_sale_price = stock.Price
         sorted_stocks = sorted(stocks, key=lambda stock: stock.last_sale_price, reverse=True)[:top_n]
@@ -22,15 +21,18 @@ class TradingDecision:
         # Sort stocks by price first
         sorted_stocks = sorted(stocks, key=lambda stock: stock.last_sale_price, reverse=True)
         
-        # Keep track of the sectors we've added
-        sectors_added = set()
+        # Keep track of the sectors and their counts
+        sector_counts = {}
 
         # Now select the top stocks ensuring diversity across sectors
         diverse_stocks = []
         for stock in sorted_stocks:
-            if stock.Sector not in sectors_added:
+            # Update the count for the stock's sector
+            sector_counts[stock.Sector] = sector_counts.get(stock.Sector, 0) + 1
+
+            # Only add the stock if it doesn't exceed the maximum per sector
+            if sector_counts[stock.Sector] <= (2 * top_n / 3):
                 diverse_stocks.append(stock)
-                sectors_added.add(stock.Sector)
 
                 # Stop if we have enough stocks
                 if len(diverse_stocks) >= top_n:
@@ -38,3 +40,4 @@ class TradingDecision:
         
         allocation_per_stock = min(0.15, 2.0 / len(diverse_stocks))
         return diverse_stocks, allocation_per_stock
+        
