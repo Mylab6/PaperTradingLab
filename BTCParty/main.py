@@ -14,6 +14,7 @@ class RandomCryptoAlgo(QCAlgorithm):
         self.AddUniverse(CryptoCoarseFundamentalUniverse(Market.GDAX, self.UniverseSettings, filter_function))
 
         self.random = Random()
+        self.volume_threshold = 1e6  # Set volume threshold
 
     def OnSecuritiesChanged(self, changes):
         # Liquidate all positions
@@ -30,15 +31,18 @@ class RandomCryptoAlgo(QCAlgorithm):
 
             # Ensure we have two days of history
             if len(history) >= 2:
-                # Get the closing prices
+                # Get the closing prices and volume
                 yesterday_close = history.iloc[-2]['close']
                 today_close = history.iloc[-1]['close']
+                today_volume = history.iloc[-1]['volume']
 
-                # Calculate the percentage change
-                pct_change = (today_close - yesterday_close) / yesterday_close
+                # Check if the volume is greater than the threshold
+                if today_volume > self.volume_threshold:
+                    # Calculate the percentage change
+                    pct_change = (today_close - yesterday_close) / yesterday_close
 
-                # Append to our list
-                crypto_changes.append((crypto, pct_change))
+                    # Append to our list
+                    crypto_changes.append((crypto, pct_change))
 
         # Sort the cryptos by percentage change in descending order
         sorted_changes = sorted(crypto_changes, key=lambda x: x[1], reverse=True)
