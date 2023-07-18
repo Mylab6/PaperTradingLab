@@ -3,7 +3,8 @@ class TradingDecision:
         self.last_rebalance = -1
 
     def should_rebalance(self, today):
-        if today.weekday() != self.last_rebalance:
+        # Check if the current day is different from the last rebalance day and if it's time for noon trading
+        if today.weekday() != self.last_rebalance and today.hour >= 16:
             self.last_rebalance = today.weekday()
             return True
         else:
