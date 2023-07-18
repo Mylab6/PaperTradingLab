@@ -1,0 +1,8 @@
+{
+    "algorithm-language": "Python",
+    "parameters": {},
+    "description": "Dual Thrust strategy is a breakout-type day-trading strategy. It trades on prediction of burst out movement with underlying logic on imbalance bid-ask causing abnormal price action. Since it uses historical price to construct update the lookback period, making it more robust on different market-volatility regime. A long-only strategy for BTCUSD was adapted in this case, trying to take edge on this asset's higher volatility and market participation compared to other asset classes or crypto pairs. We'll be trading on hourly signals, and holding BTC until it dropped below the selling-trigger price.\n\nAdapted from Michael Vitucci",
+    "cloud-id": 15344725,
+    "organization-id": "1b87df463e04ae9cd78e9c5a9ea01d67",
+    "python-venv": 1
+}
