@@ -20,7 +20,7 @@ class StockData:
 
 class QuantConnectBacktester(QCAlgorithm):
     def Initialize(self):
-        self.SetStartDate(2020, 7, 17)  # Set Start Date
+        self.SetStartDate(2022, 7, 17)  # Set Start Date
         self.SetCash(100000)  # Set Strategy Cash
         self.SetBenchmark("SPY")
 
