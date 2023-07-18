@@ -3,7 +3,7 @@ from QuantConnect import *
 from QuantConnect.Algorithm import *
 from QuantConnect.Data.UniverseSelection import *
 from AlgorithmImports import *
-
+from coins import popular_coins
 class RandomCryptoAlgo(QCAlgorithm):
     def Initialize(self):
         self.SetStartDate(2020, 1, 1)  # Set start date for backtesting
@@ -14,10 +14,7 @@ class RandomCryptoAlgo(QCAlgorithm):
         self.SetBrokerageModel(BrokerageName.GDAX, AccountType.Cash)
 
         # Define top 20 popular cryptos
-        self.popular_cryptos = ["BTCUSD", "ETHUSD", "XRPUSD", "LTCUSD", "BCHUSD", 
-                                "EOSUSD", "BNBUSD", "XLMUSD", "ADAUSD", "TRXUSD",
-                                "XMRUSD", "DASHUSD", "IOTAUSD", "NEOUSD", "ATOMUSD",
-                                "XTZUSD", "LINKUSD", "VETUSD", "DOGEUSD", "ZECUSD"]
+        self.popular_cryptos = popular_coins
 
         # Filter universe to contain only the top 20 popular cryptos
         filter_function = lambda crypto_coarse: [c.Symbol for c in crypto_coarse if c.Symbol.Value in self.popular_cryptos]
