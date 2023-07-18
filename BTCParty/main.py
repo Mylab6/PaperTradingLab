@@ -24,9 +24,18 @@ class RandomCryptoAlgo(QCAlgorithm):
         # Check if there is data available for the selected coin
         if random_coin in data.Keys:
             coin_data = data[random_coin]
-            if coin_data.IsReady:
-                # Place a market order for the selected coin
-                self.MarketOrder(random_coin, 1)
 
-                # Print the order details to the console
-                self.Debug(f"Placed market order for {random_coin} at {coin_data.Close}")
+            # Get historical bars for the selected coin
+            history = self.History(random_coin, 120, Resolution.Minute)
+
+            # Calculate the price change over the last 2 hours
+            if not history.empty:
+                price_change = coin_data.Close - history['open'][-1]
+                
+                # Check if the price has been going up over the last 2 hours
+                if price_change > 0:
+                    # Place a market order for the selected coin
+                    self.MarketOrder(random_coin, 1)
+
+                    # Print the order details to the console
+                    self.Debug(f"Placed market order for {random_coin} at {coin_data.Close}")
