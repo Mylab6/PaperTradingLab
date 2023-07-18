@@ -59,5 +59,33 @@ stock_data = [
     {'Symbol': 'GS', 'Security': 'The Goldman Sachs Group, Inc.', 'Sector': 'Financials'},
     {'Symbol': 'COST', 'Security': 'Costco Wholesale Corporation', 'Sector': 'Consumer Staples'}, 
     {'Symbol': 'LOW', 'Security': "Lowe's Companies, Inc.", 'Sector': 'Consumer Discretionary'},
-    {'Symbol': 'F', 'Security': 'Ford Motor Company', 'Sector': 'Consumer Discretionary'}
+    {'Symbol': 'F', 'Security': 'Ford Motor Company', 'Sector': 'Consumer Discretionary'}  
+]
+
+additional_stock_data = [
+    {'Symbol': 'CRM', 'Security': 'Salesforce.com Inc.', 'Sector': 'Information Technology'},
+    {'Symbol': 'CAT', 'Security': 'Caterpillar Inc.', 'Sector': 'Industrials'},
+    {'Symbol': 'AXP', 'Security': 'American Express Company', 'Sector': 'Financials'},
+    {'Symbol': 'MMM', 'Security': '3M Company', 'Sector': 'Industrials'},
+    {'Symbol': 'IBM', 'Security': 'International Business Machines Corporation', 'Sector': 'Information Technology'},
+    {'Symbol': 'TXN', 'Security': 'Texas Instruments Incorporated', 'Sector': 'Information Technology'},
+    {'Symbol': 'QCOM', 'Security': 'Qualcomm Incorporated', 'Sector': 'Information Technology'},
+    {'Symbol': 'ACN', 'Security': 'Accenture plc', 'Sector': 'Information Technology'},
+    {'Symbol': 'UPS', 'Security': 'United Parcel Service, Inc.', 'Sector': 'Industrials'},
+    {'Symbol': 'FISV', 'Security': 'Fiserv, Inc.', 'Sector': 'Information Technology'},
+    {'Symbol': 'GS', 'Security': 'Goldman Sachs Group Inc.', 'Sector': 'Financials'},
+    {'Symbol': 'SPGI', 'Security': 'S&P Global Inc.', 'Sector': 'Financials'},
+    {'Symbol': 'MO', 'Security': 'Altria Group, Inc.', 'Sector': 'Consumer Staples'},
+    {'Symbol': 'HON', 'Security': 'Honeywell International Inc.', 'Sector': 'Industrials'},
+    {'Symbol': 'CB', 'Security': 'Chubb Limited', 'Sector': 'Financials'},
+    {'Symbol': 'RTX', 'Security': 'Raytheon Technologies Corporation', 'Sector': 'Industrials'},
+    {'Symbol': 'DUK', 'Security': 'Duke Energy Corporation', 'Sector': 'Utilities'},
+    {'Symbol': 'SO', 'Security': 'Southern Company', 'Sector': 'Utilities'},
+    {'Symbol': 'DHR', 'Security': 'Danaher Corporation', 'Sector': 'Health Care'},
+    {'Symbol': 'LIN', 'Security': 'Linde plc', 'Sector': 'Materials'},
+    {'Symbol': 'SAP', 'Security': 'SAP SE', 'Sector': 'Information Technology'},
+    {'Symbol': 'BDX', 'Security': 'Becton, Dickinson and Company', 'Sector': 'Health Care'},
+    {'Symbol': 'NEE', 'Security': 'NextEra Energy, Inc.', 'Sector': 'Utilities'},
+    {'Symbol': 'UNP', 'Security': 'Union Pacific Corporation', 'Sector': 'Industrials'},
+    {'Symbol': 'ANTM', 'Security': 'Anthem, Inc.', 'Sector': 'Health Care'}
 ]
