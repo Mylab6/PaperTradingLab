@@ -1,10 +1,7 @@
 import alpaca_trade_api as tradeapi
 import os
-import pandas as pd
-from datetime import datetime, timedelta
-import pytz
+import time
 from trading_logic import TradingDecision
-import math
 from alpaca_trade_api.rest import APIError
 
 from s_and_p_first_half import stock_data as stock_data_1
@@ -34,60 +31,8 @@ class AlpacaTradingBot:
         self.alpaca = tradeapi.REST(api_key, api_secret, base_url=api_url) 
         self.selected_stocks = []
         self.trading_decision = TradingDecision()
-
-        self.account = self.alpaca.get_account()
-        self.initial_capital = float(self.account.portfolio_value)  # Save the initial portfolio value
-        print( 'Initial portfolio value: $' + str(self.initial_capital))
         self.load_stock_data()
-
-    def on_data(self):
-        self.account = self.alpaca.get_account() # Refresh account data
-        sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
-        if get_diverse_stocks:
-            sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
         
-        cash_per_stock = float(self.account.cash) * allocation_per_stock
-
-        exceptions = []
-        
-        for stock in sorted_stocks:
-            target_quantity = int(cash_per_stock / stock.last_sale_price)
-            position = None
-            try:
-                position = self.alpaca.get_position(stock.symbol)
-            except:
-                pass
-            current_quantity = position.qty if position else 0
-            current_quantity = int(current_quantity)
-            if target_quantity != current_quantity:
-                qty = abs(target_quantity - current_quantity)
-                side = 'buy' if target_quantity > current_quantity else 'sell'
-
-                # If the purchase would reduce cash to less than 15% of current portfolio value, don't proceed
-                if side == 'buy' and float(self.account.cash) - qty * stock.last_sale_price < 0.15 * float(self.account.portfolio_value):
-                    print('Skipping investment to avoid reducing cash to less than 15% of portfolio value')
-                    print('Current portfolio value: $' + str(self.account.portfolio_value))
-                    print('Current cash: $' + str(self.account.cash))
-                    continue
-
-                try:
-                    order = self.alpaca.submit_order(
-                        symbol=stock.symbol,
-                        qty=qty,
-                        side=side,
-                        type='market',
-                        time_in_force='gtc'
-                    )
-                    print(f"Order {order.id} submitted: {qty} shares of {stock.symbol} to {side}")
-                except APIError as e:
-                    if 'insufficient qty' in str(e):
-                        exceptions.append(f"No more {stock.symbol} to sell")
-                    else:
-                        exceptions.append(str(e))
-        
-        if exceptions:
-            raise Exception('; '.join(exceptions))
-
     def load_stock_data(self):
         for stock in stock_data:
             try:
@@ -100,6 +45,56 @@ class AlpacaTradingBot:
                 self.selected_stocks.append(equity)
             except Exception as e:
                 print(f"Error loading stock data for {symbol}: {str(e)}")
+
+    def on_data(self):
+        self.account = self.alpaca.get_account()
+        sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
+        if get_diverse_stocks:
+            sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
+
+        cash_available = float(self.account.cash)
+        exceptions = []
+        
+        for stock in sorted_stocks:
+            cash_per_stock = cash_available * allocation_per_stock
+            target_quantity = int(cash_per_stock / stock.last_sale_price)
+            
+            position = None
+            try:
+                position = self.alpaca.get_position(stock.symbol)
+            except:
+                pass
+            current_quantity = int(position.qty if position else 0)
+            if target_quantity != current_quantity:
+                qty = abs(target_quantity - current_quantity)
+                side = 'buy' if target_quantity > current_quantity else 'sell'
+                
+                if side == 'buy':
+                    cost_of_trade = qty * stock.last_sale_price
+                    if cost_of_trade > cash_available:
+                        print(f"Not enough cash to buy {qty} shares of {stock.symbol}. Needed: {cost_of_trade}, available: {cash_available}. Skipping this trade.")
+                        continue
+                    else:
+                        cash_available -= cost_of_trade  # Update available cash
+
+                try:
+                    order = self.alpaca.submit_order(
+                        symbol=stock.symbol,
+                        qty=qty,
+                        side=side,
+                        type='market',
+                        time_in_force='gtc'
+                    )
+                    print(f"Order {order.id} submitted: {qty} shares of {stock.symbol} to {side}")
+                    time.sleep(3)  # Wait for 3 seconds to let the order execute
+                except APIError as e:
+                    if 'insufficient qty' in str(e):
+                        exceptions.append(f"No more {stock.symbol} to sell")
+                    else:
+                        exceptions.append(str(e))
+        
+        if exceptions:
+            raise Exception('; '.join(exceptions))
 
 if __name__ == "__main__":
     bot = AlpacaTradingBot()
