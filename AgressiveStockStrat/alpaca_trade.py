@@ -72,10 +72,9 @@ class AlpacaTradingBot:
                 if side == 'buy':
                     cost_of_trade = qty * stock.last_sale_price
                     if cost_of_trade > cash_available:
-                        print(f"Not enough cash to buy {qty} shares of {stock.symbol}. Needed: {cost_of_trade}, available: {cash_available}. Skipping this trade.")
-                        continue
-                    else:
-                        cash_available -= cost_of_trade  # Update available cash
+                        qty = int(cash_available / stock.last_sale_price)  # Buy as much as we can
+                        cost_of_trade = qty * stock.last_sale_price
+                    cash_available -= cost_of_trade  # Update available cash
 
                 try:
                     order = self.alpaca.submit_order(
