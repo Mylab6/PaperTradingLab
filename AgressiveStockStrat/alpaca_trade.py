@@ -48,11 +48,13 @@ class AlpacaTradingBot:
 
     def on_data(self):
         self.account = self.alpaca.get_account()
+        portfolio_value = float(self.account.portfolio_value)
+        reserve_cash = portfolio_value * 0.15
+        cash_available = float(self.account.cash)
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
 
-        cash_available = float(self.account.cash)
         exceptions = []
         
         for stock in sorted_stocks:
@@ -71,8 +73,8 @@ class AlpacaTradingBot:
                 
                 if side == 'buy':
                     cost_of_trade = qty * stock.last_sale_price
-                    if cost_of_trade > cash_available:
-                        qty = int(cash_available / stock.last_sale_price)  # Buy as much as we can
+                    if cash_available - cost_of_trade < reserve_cash:  # Check reserve cash requirement
+                        qty = int((cash_available - reserve_cash) / stock.last_sale_price)
                         cost_of_trade = qty * stock.last_sale_price
                     cash_available -= cost_of_trade  # Update available cash
 

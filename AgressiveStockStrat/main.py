@@ -42,7 +42,15 @@ class QuantConnectBacktester(QCAlgorithm):
             
             for stock in sorted_stocks:
                 if self.Portfolio.Cash > 0.15 * self.initial_capital:
-                    self.SetHoldings(stock.Symbol, allocation_per_stock)
+                    target_allocation = allocation_per_stock
+                    stock_price = self.Securities[stock.Symbol].Price
+                    target_value = target_allocation * self.Portfolio.TotalPortfolioValue
+                    quantity = int(target_value / stock_price)
+                    cash_required = quantity * stock_price
+                    
+                    if cash_required > (self.Portfolio.Cash - 0.15 * self.initial_capital):
+                        quantity = int((self.Portfolio.Cash - 0.15 * self.initial_capital) / stock_price)
+                    self.Order(stock.Symbol, quantity)
                 else:
                     break
 
