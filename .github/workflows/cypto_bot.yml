@@ -2,7 +2,7 @@ name: Run crypto bot
 
 on:
   schedule:
-    - cron: '0 * * * *'  # run once per hour
+    - cron: '0 17 * * 1-5'  # run at noon on weekdays
   workflow_dispatch:  # manual trigger
 
 jobs:
