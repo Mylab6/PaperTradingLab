@@ -13,6 +13,7 @@ if(use_magic_100):
     stock_data = magic_100
 if(use_extended_magic):
     stock_data = stock_data + additional_stock_data
+
 class StockData:
     def __init__(self, symbol, description):
         self.symbol = symbol
@@ -22,6 +23,7 @@ class QuantConnectBacktester(QCAlgorithm):
     def Initialize(self):
         self.SetStartDate(2022, 7, 17)  # Set Start Date
         self.SetCash(100000)  # Set Strategy Cash
+        self.initial_capital = 100000  # Store the initial capital
         self.SetBenchmark("SPY")
 
         self.selected_stocks = []  # Define selected_stocks before calling LoadStockData
@@ -34,14 +36,15 @@ class QuantConnectBacktester(QCAlgorithm):
 
     def OnData(self, data):
         if self.trading_decision.should_rebalance(self.Time):
-            
             sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
             if get_diverse_stocks:
                 sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
-
             
             for stock in sorted_stocks:
-                self.SetHoldings(stock.Symbol, allocation_per_stock)
+                if self.Portfolio.Cash > 0.15 * self.initial_capital:
+                    self.SetHoldings(stock.Symbol, allocation_per_stock)
+                else:
+                    break
 
     def LoadStockData(self):
         for stock in stock_data:

@@ -9,8 +9,6 @@ from alpaca_trade_api.rest import APIError
 
 from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
-
-# combine the two lists of stock data
 from stocks import stock_data as magic_100
 from stocks import additional_stock_data as additional_stock_data
 
@@ -38,19 +36,16 @@ class AlpacaTradingBot:
         self.trading_decision = TradingDecision()
 
         self.account = self.alpaca.get_account()
-        self.update_cash_available()
+        self.initial_capital = float(self.account.portfolio_value)  # Save the initial portfolio value
 
         self.load_stock_data()
-
-    def update_cash_available(self):
-        self.cash_available = float(self.account.cash)
 
     def on_data(self):
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
         
-        cash_per_stock = self.cash_available * allocation_per_stock
+        cash_per_stock = float(self.account.cash) * allocation_per_stock
 
         exceptions = []
         
@@ -67,8 +62,8 @@ class AlpacaTradingBot:
                 qty = abs(target_quantity - current_quantity)
                 side = 'buy' if target_quantity > current_quantity else 'sell'
 
-                if side == 'buy' and qty * stock.last_sale_price > self.cash_available:
-                    exceptions.append(f"Insufficient cash to buy {stock.symbol}")
+                # If the purchase would push portfolio value over 85% of initial capital, don't proceed
+                if side == 'buy' and float(self.account.portfolio_value) + qty * stock.last_sale_price > 0.85 * self.initial_capital:
                     continue
 
                 try:
@@ -79,7 +74,6 @@ class AlpacaTradingBot:
                         type='market',
                         time_in_force='gtc'
                     )
-                    self.update_cash_available()
                 except APIError as e:
                     if 'insufficient qty' in str(e):
                         exceptions.append(f"No more {stock.symbol} to sell")
@@ -87,10 +81,7 @@ class AlpacaTradingBot:
                         exceptions.append(str(e))
         
         if exceptions:
-            if any("Insufficient" not in e for e in exceptions):
-                raise Exception('; '.join(exceptions))
-            else:
-                print(f"Exceptions occurred: {', '.join(exceptions)}")
+            raise Exception('; '.join(exceptions))
 
     def load_stock_data(self):
         for stock in stock_data:
