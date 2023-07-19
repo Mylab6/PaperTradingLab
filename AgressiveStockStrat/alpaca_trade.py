@@ -37,10 +37,11 @@ class AlpacaTradingBot:
 
         self.account = self.alpaca.get_account()
         self.initial_capital = float(self.account.portfolio_value)  # Save the initial portfolio value
-
+        print( 'Initial portfolio value: $' + str(self.initial_capital))
         self.load_stock_data()
 
     def on_data(self):
+        self.account = self.alpaca.get_account() # Refresh account data
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
@@ -62,18 +63,22 @@ class AlpacaTradingBot:
                 qty = abs(target_quantity - current_quantity)
                 side = 'buy' if target_quantity > current_quantity else 'sell'
 
-                # If the purchase would push portfolio value over 85% of initial capital, don't proceed
-                if side == 'buy' and float(self.account.portfolio_value) + qty * stock.last_sale_price > 0.85 * self.initial_capital:
+                # If the purchase would reduce cash to less than 15% of current portfolio value, don't proceed
+                if side == 'buy' and float(self.account.cash) - qty * stock.last_sale_price < 0.15 * float(self.account.portfolio_value):
+                    print('Skipping investment to avoid reducing cash to less than 15% of portfolio value')
+                    print('Current portfolio value: $' + str(self.account.portfolio_value))
+                    print('Current cash: $' + str(self.account.cash))
                     continue
 
                 try:
-                    self.alpaca.submit_order(
+                    order = self.alpaca.submit_order(
                         symbol=stock.symbol,
                         qty=qty,
                         side=side,
                         type='market',
                         time_in_force='gtc'
                     )
+                    print(f"Order {order.id} submitted: {qty} shares of {stock.symbol} to {side}")
                 except APIError as e:
                     if 'insufficient qty' in str(e):
                         exceptions.append(f"No more {stock.symbol} to sell")
