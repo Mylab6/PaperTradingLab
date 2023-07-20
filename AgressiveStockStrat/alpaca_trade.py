@@ -11,7 +11,6 @@ from stocks import additional_stock_data as additional_stock_data
 
 use_magic_100 = True
 use_extended_magic = True
-sell_first = True
 get_diverse_stocks = False
 stock_data = stock_data_1 + stock_data_2
 if(use_magic_100):
@@ -86,8 +85,8 @@ class AlpacaTradingBot:
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
         
-        if sell_first:
-            self.sell_excess_holdings(sorted_stocks, allocation_per_stock)
+        
+        self.sell_excess_holdings(sorted_stocks, allocation_per_stock)
         cash_available = float(self.account.cash)
 
 
