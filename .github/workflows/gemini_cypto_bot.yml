@@ -1,0 +1,40 @@
+name: Run crypto bot
+
+on:
+  #schedule:
+    #- cron: '0 17 * * 1-5'  # run at noon on weekdays
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  build_crypto:
+    runs-on: ubuntu-latest
+    environment: Crypto
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Exit if not on main branch
+      run: |
+        if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then 
+          echo "Workflow is not running on main branch. Exiting..."
+          exit 1
+        fi
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f BTCParty/requirements.txt ]; then pip install -r BTCParty/requirements.txt; fi
+        pip install gemini_python
+
+
+    - name: Run Crypto Trading Bot
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMNI_API_KEY }}
+        GEMINI_API_SECRET: ${{ secrets.GEMNI_API_SECRET }}
+        IS_SAND_BOX: ${{ secrets.SANDBOX }}
+      run: python BTCParty/gemini_cypto.py

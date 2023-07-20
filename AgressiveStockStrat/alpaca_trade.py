@@ -67,6 +67,11 @@ class AlpacaTradingBot:
             except:
                 pass
             current_quantity = int(position.qty if position else 0)
+
+            # Check if the current quantity is negative, if it is, set target quantity to 0
+            if current_quantity < 0:
+                target_quantity = 0
+            
             if target_quantity != current_quantity:
                 qty = abs(target_quantity - current_quantity)
                 side = 'buy' if target_quantity > current_quantity else 'sell'
@@ -78,21 +83,23 @@ class AlpacaTradingBot:
                         cost_of_trade = qty * stock.last_sale_price
                     cash_available -= cost_of_trade  # Update available cash
 
-                try:
-                    order = self.alpaca.submit_order(
-                        symbol=stock.symbol,
-                        qty=qty,
-                        side=side,
-                        type='market',
-                        time_in_force='gtc'
-                    )
-                    print(f"Order {order.id} submitted: {qty} shares of {stock.symbol} to {side}")
-                    time.sleep(3)  # Wait for 3 seconds to let the order execute
-                except APIError as e:
-                    if 'insufficient qty' in str(e):
-                        exceptions.append(f"No more {stock.symbol} to sell")
-                    else:
-                        exceptions.append(str(e))
+                # Check if quantity is greater than zero before submitting order
+                if qty > 0:
+                    try:
+                        order = self.alpaca.submit_order(
+                            symbol=stock.symbol,
+                            qty=qty,
+                            side=side,
+                            type='market',
+                            time_in_force='gtc'
+                        )
+                        print(f"Order {order.id} submitted: {qty} shares of {stock.symbol} to {side}")
+                        time.sleep(3)  # Wait for 3 seconds to let the order execute
+                    except APIError as e:
+                        if 'insufficient qty' in str(e):
+                            exceptions.append(f"No more {stock.symbol} to sell")
+                        else:
+                            exceptions.append(str(e))
         
         if exceptions:
             raise Exception('; '.join(exceptions))
