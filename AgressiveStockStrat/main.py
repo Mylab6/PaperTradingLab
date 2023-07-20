@@ -7,8 +7,10 @@ from stocks import additional_stock_data as additional_stock_data
 
 use_magic_100 = True
 use_extended_magic = True
+sell_first = True
 stock_data = stock_data_1 + stock_data_2
 get_diverse_stocks = False
+
 if(use_magic_100):
     stock_data = magic_100
 if(use_extended_magic):
@@ -40,19 +42,36 @@ class QuantConnectBacktester(QCAlgorithm):
             if get_diverse_stocks:
                 sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
             
-            for stock in sorted_stocks:
-                if self.Portfolio.Cash > 0.15 * self.initial_capital:
-                    target_allocation = allocation_per_stock
-                    stock_price = self.Securities[stock.Symbol].Price
-                    target_value = target_allocation * self.Portfolio.TotalPortfolioValue
-                    quantity = int(target_value / stock_price)
-                    cash_required = quantity * stock_price
-                    
-                    if cash_required > (self.Portfolio.Cash - 0.15 * self.initial_capital):
-                        quantity = int((self.Portfolio.Cash - 0.15 * self.initial_capital) / stock_price)
-                    self.Order(stock.Symbol, quantity)
-                else:
-                    break
+            if sell_first:
+                self.sell_excess_holdings(sorted_stocks, allocation_per_stock)
+            
+            self.buy_new_stocks(sorted_stocks, allocation_per_stock)
+
+    def sell_excess_holdings(self, sorted_stocks, allocation_per_stock):
+        for stock in self.Portfolio.Values:
+            stock_price = self.Securities[stock.Symbol].Price
+            target_value = allocation_per_stock * self.Portfolio.TotalPortfolioValue
+            desired_quantity = int(target_value / stock_price)
+
+            current_quantity = self.Portfolio[stock.Symbol].Quantity
+
+            if current_quantity > desired_quantity:
+                # Sell some of the holdings
+                self.Order(stock.Symbol, desired_quantity - current_quantity)
+
+    def buy_new_stocks(self, sorted_stocks, allocation_per_stock):
+        for stock in sorted_stocks:
+            if self.Portfolio.Cash > 0.15 * self.initial_capital:
+                stock_price = self.Securities[stock.Symbol].Price
+                target_value = allocation_per_stock * self.Portfolio.TotalPortfolioValue
+                desired_quantity = int(target_value / stock_price)
+                current_quantity = self.Portfolio[stock.Symbol].Quantity
+
+                if current_quantity < desired_quantity:
+                    # Buy more of the stock, respecting the cash reserve
+                    cash_required = (desired_quantity - current_quantity) * stock_price
+                    if cash_required <= (self.Portfolio.Cash - 0.15 * self.initial_capital):
+                        self.Order(stock.Symbol, desired_quantity - current_quantity)
 
     def LoadStockData(self):
         for stock in stock_data:
