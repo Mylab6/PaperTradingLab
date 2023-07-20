@@ -51,6 +51,9 @@ class QuantConnectBacktester(QCAlgorithm):
         for stock in self.Portfolio.Values:
             stock_price = self.Securities[stock.Symbol].Price
             target_value = allocation_per_stock * self.Portfolio.TotalPortfolioValue
+            if stock_price == 0 :
+                print('Could not fetch price for ' , stock.Symbol)
+                continue
             desired_quantity = int(target_value / stock_price)
 
             current_quantity = self.Portfolio[stock.Symbol].Quantity

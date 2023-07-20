@@ -11,6 +11,7 @@ from stocks import additional_stock_data as additional_stock_data
 
 use_magic_100 = True
 use_extended_magic = True
+sell_first = True
 get_diverse_stocks = False
 stock_data = stock_data_1 + stock_data_2
 if(use_magic_100):
@@ -32,7 +33,7 @@ class AlpacaTradingBot:
         self.selected_stocks = []
         self.trading_decision = TradingDecision()
         self.load_stock_data()
-        
+
     def load_stock_data(self):
         for stock in stock_data:
             try:
@@ -46,6 +47,36 @@ class AlpacaTradingBot:
             except Exception as e:
                 print(f"Error loading stock data for {symbol}: {str(e)}")
 
+    def sell_excess_holdings(self, sorted_stocks, allocation_per_stock):
+        current_positions = self.alpaca.list_positions()
+        for position in current_positions:
+            symbol = position.symbol
+            current_quantity = int(position.qty)
+            target_quantity = 0
+            for stock in sorted_stocks:
+                if stock.symbol == symbol:
+                    cash_per_stock = float(self.account.cash) * allocation_per_stock
+                    target_quantity = int(cash_per_stock / stock.last_sale_price)
+                    break
+            if current_quantity > target_quantity:
+                qty = current_quantity - target_quantity
+                self.place_order(symbol, qty, 'sell')
+                self.account = self.alpaca.get_account()  # Update account information after each sell
+
+    def place_order(self, symbol, qty, side):
+        try:
+            order = self.alpaca.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side=side,
+                type='market',
+                time_in_force='gtc'
+            )
+            print(f"Order {order.id} submitted: {qty} shares of {symbol} to {side}")
+            time.sleep(3)  # Wait for 3 seconds to let the order execute
+        except APIError as e:
+            print(f"Error placing order for {symbol}: {str(e)}")
+
     def on_data(self):
         self.account = self.alpaca.get_account()
         portfolio_value = float(self.account.portfolio_value)
@@ -54,9 +85,12 @@ class AlpacaTradingBot:
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
-
-        exceptions = []
         
+        if sell_first:
+            self.sell_excess_holdings(sorted_stocks, allocation_per_stock)
+        cash_available = float(self.account.cash)
+
+
         for stock in sorted_stocks:
             cash_per_stock = cash_available * allocation_per_stock
             target_quantity = int(cash_per_stock / stock.last_sale_price)
@@ -72,37 +106,12 @@ class AlpacaTradingBot:
             if current_quantity < 0:
                 target_quantity = 0
             
-            if target_quantity != current_quantity:
-                qty = abs(target_quantity - current_quantity)
-                side = 'buy' if target_quantity > current_quantity else 'sell'
-                
-                if side == 'buy':
-                    cost_of_trade = qty * stock.last_sale_price
-                    if cash_available - cost_of_trade < reserve_cash:  # Check reserve cash requirement
-                        qty = int((cash_available - reserve_cash) / stock.last_sale_price)
-                        cost_of_trade = qty * stock.last_sale_price
+            if target_quantity > current_quantity:
+                qty = target_quantity - current_quantity
+                cost_of_trade = qty * stock.last_sale_price
+                if cash_available - cost_of_trade >= reserve_cash:  # Check reserve cash requirement
                     cash_available -= cost_of_trade  # Update available cash
-
-                # Check if quantity is greater than zero before submitting order
-                if qty > 0:
-                    try:
-                        order = self.alpaca.submit_order(
-                            symbol=stock.symbol,
-                            qty=qty,
-                            side=side,
-                            type='market',
-                            time_in_force='gtc'
-                        )
-                        print(f"Order {order.id} submitted: {qty} shares of {stock.symbol} to {side}")
-                        time.sleep(3)  # Wait for 3 seconds to let the order execute
-                    except APIError as e:
-                        if 'insufficient qty' in str(e):
-                            exceptions.append(f"No more {stock.symbol} to sell")
-                        else:
-                            exceptions.append(str(e))
-        
-        if exceptions:
-            raise Exception('; '.join(exceptions))
+                    self.place_order(stock.symbol, qty, 'buy')
 
 if __name__ == "__main__":
     bot = AlpacaTradingBot()
