@@ -1,4 +1,4 @@
-name: Run crypto bot
+name: Run Gemini crypto bot
 
 on:
   #schedule:
