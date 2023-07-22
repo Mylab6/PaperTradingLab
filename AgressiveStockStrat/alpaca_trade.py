@@ -8,15 +8,19 @@ from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
 from stocks import stock_data as magic_100
 from stocks import additional_stock_data as additional_stock_data
-
+from GetSenateStocks import StockData 
 use_magic_100 = True
 use_extended_magic = True
 get_diverse_stocks = False
+get_senate_stocks = True
 stock_data = stock_data_1 + stock_data_2
 if(use_magic_100):
     stock_data = magic_100
 if(use_extended_magic):
     stock_data = stock_data + additional_stock_data
+if(get_senate_stocks):
+    StockData = StockData()
+    stock_data = StockData.get_most_common_stocks(100)
 api_key = os.getenv('ALPACA_API_KEY')
 api_secret = os.getenv('ALPACA_API_SECRET')
 api_url = os.getenv('ALPACA_API_URL', 'https://paper-api.alpaca.markets')
