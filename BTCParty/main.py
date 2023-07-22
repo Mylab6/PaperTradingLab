@@ -16,7 +16,7 @@ class RandomCryptoAlgo(QCAlgorithm):
 
         # Define top 20 popular cryptos
         self.popular_cryptos = popular_coins
-        self.top_n = 10  # Increase the number of cryptos to invest in
+        self.top_n = 5  # Increase the number of cryptos to invest in
 
         # Filter universe to contain only the top 20 popular cryptos
         filter_function = lambda crypto_coarse: [c.Symbol for c in crypto_coarse if c.Symbol.Value in self.popular_cryptos]

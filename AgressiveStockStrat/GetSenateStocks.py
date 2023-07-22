@@ -1,7 +1,7 @@
 import requests
 import re
 from collections import Counter, defaultdict
-
+from senate_stocks import senate_stocks
 class StockData:
 
     @staticmethod
@@ -10,9 +10,19 @@ class StockData:
         return match.group(1) if match else None
 
     @staticmethod
-    def get_most_common_stocks(n=20):
-        response = requests.get('https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/aggregate/all_ticker_transactions.json')
-        data = response.json()
+    def get_most_common_stocks(n=100, useOfflineData=False):
+        if useOfflineData:
+            print('Using offline senate stock data')
+            return senate_stocks[:n]
+        data = None
+        try:
+            
+            response = requests.get('https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/aggregate/all_ticker_transactions.json')
+            data = response.json()
+        except Exception as e:
+            print(f"Error loading senate stock data: {str(e)}")
+            print("Using backup senate stock data")
+            return senate_stocks[:n]
 
         stocks = defaultdict(list)
         for person in data:
@@ -37,7 +47,7 @@ class StockData:
             
         return stock_data
 
-# Usage
-#stockData = StockData()
-#most_common_stocks = stockData.get_most_common_stocks(20)
-#print(most_common_stocks)
+if __name__ == "__main__":
+    stockData = StockData()
+    most_common_stocks = stockData.get_most_common_stocks(20)
+    print(most_common_stocks)
