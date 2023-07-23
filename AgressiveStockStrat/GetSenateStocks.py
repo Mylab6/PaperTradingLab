@@ -70,5 +70,7 @@ class GetSenateStocks:
 
 if __name__ == "__main__":
     stockData = GetSenateStocks()
-    most_common_stocks = stockData.get_most_common_stocks(100, cutoff_date='2022-12-12')
+    #most_common_stocks = stockData.get_most_common_stocks(100, cutoff_date='2022-12-12')
+    most_common_stocks = stockData.get_most_common_stocks(100)
+
     print(most_common_stocks)
