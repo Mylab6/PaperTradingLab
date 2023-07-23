@@ -13,7 +13,9 @@ use_magic_100 = True
 use_extended_magic = True
 get_diverse_stocks = False
 get_senate_stocks = True
+only_positive_senate_ratio = True
 stock_data = stock_data_1 + stock_data_2
+
 if(use_magic_100):
     stock_data = magic_100
 if(use_extended_magic):
@@ -21,6 +23,8 @@ if(use_extended_magic):
 if(get_senate_stocks):
     StockData = StockData()
     stock_data = StockData.get_most_common_stocks(100)
+    if only_positive_senate_ratio:
+        stock_data = [stock for stock in stock_data if stock['Buy to Sale Ratio'] > 1]
 api_key = os.getenv('ALPACA_API_KEY')
 api_secret = os.getenv('ALPACA_API_SECRET')
 api_url = os.getenv('ALPACA_API_URL', 'https://paper-api.alpaca.markets')

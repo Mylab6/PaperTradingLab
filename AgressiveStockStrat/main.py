@@ -4,17 +4,23 @@ from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
 from stocks import stock_data as magic_100
 from stocks import additional_stock_data as additional_stock_data
-
+from senate_stocks import senate_stocks
 use_magic_100 = True
 use_extended_magic = True
 sell_first = True
 stock_data = stock_data_1 + stock_data_2
 get_diverse_stocks = False
+use_senate_stocks = True
+only_positive_senate_ratio = True
 
 if(use_magic_100):
     stock_data = magic_100
 if(use_extended_magic):
     stock_data = stock_data + additional_stock_data
+if(use_senate_stocks):
+    stock_data = senate_stocks
+    if only_positive_senate_ratio:
+        stock_data = [stock for stock in stock_data if stock['Buy to Sale Ratio'] > 0]
 
 class StockData:
     def __init__(self, symbol, description):
