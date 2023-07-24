@@ -8,7 +8,7 @@ from s_and_p_first_half import stock_data as stock_data_1
 from s_and_p_second_half import stock_data as stock_data_2
 from stocks import stock_data as magic_100
 from stocks import additional_stock_data as additional_stock_data
-from GetSenateStocks import StockData 
+from GetSenateStocks import  GetSenateStocks
 use_magic_100 = True
 use_extended_magic = True
 get_diverse_stocks = False
@@ -21,8 +21,8 @@ if(use_magic_100):
 if(use_extended_magic):
     stock_data = stock_data + additional_stock_data
 if(get_senate_stocks):
-    StockData = StockData()
-    stock_data = StockData.get_most_common_stocks(100)
+    GetSenateStocks = GetSenateStocks()
+    stock_data = GetSenateStocks.get_most_common_stocks(100)
     if only_positive_senate_ratio:
         stock_data = [stock for stock in stock_data if stock['Buy to Sale Ratio'] > 1]
 api_key = os.getenv('ALPACA_API_KEY')
