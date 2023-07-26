@@ -25,6 +25,7 @@ if(get_senate_stocks):
     stock_data = GetSenateStocks.get_most_common_stocks(100)
     if only_positive_senate_ratio:
         stock_data = [stock for stock in stock_data if stock['Buy to Sale Ratio'] > 1]
+
 api_key = os.getenv('ALPACA_API_KEY')
 api_secret = os.getenv('ALPACA_API_SECRET')
 api_url = os.getenv('ALPACA_API_URL', 'https://paper-api.alpaca.markets')
@@ -40,6 +41,7 @@ class AlpacaTradingBot:
         self.selected_stocks = []
         self.trading_decision = TradingDecision()
         self.load_stock_data()
+        self.sold_stocks = []  # Added to keep track of sold stocks in a single run
 
     def load_stock_data(self):
         for stock in stock_data:
@@ -56,6 +58,7 @@ class AlpacaTradingBot:
 
     def sell_excess_holdings(self, sorted_stocks, allocation_per_stock):
         current_positions = self.alpaca.list_positions()
+        sold_stocks = []
         for position in current_positions:
             symbol = position.symbol
             current_quantity = int(position.qty)
@@ -68,7 +71,10 @@ class AlpacaTradingBot:
             if current_quantity > target_quantity:
                 qty = current_quantity - target_quantity
                 self.place_order(symbol, qty, 'sell')
+                sold_stocks.append(symbol)
                 self.account = self.alpaca.get_account()  # Update account information after each sell
+        self.sold_stocks = sold_stocks
+        return sold_stocks
 
     def place_order(self, symbol, qty, side):
         try:
@@ -92,11 +98,9 @@ class AlpacaTradingBot:
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
-        
-        
+
         self.sell_excess_holdings(sorted_stocks, allocation_per_stock)
         cash_available = float(self.account.cash)
-
 
         for stock in sorted_stocks:
             cash_per_stock = cash_available * allocation_per_stock
@@ -109,14 +113,16 @@ class AlpacaTradingBot:
                 pass
             current_quantity = int(position.qty if position else 0)
 
-            # Check if the current quantity is negative, if it is, set target quantity to 0
             if current_quantity < 0:
                 target_quantity = 0
-            
+
             if target_quantity > current_quantity:
                 qty = target_quantity - current_quantity
                 cost_of_trade = qty * stock.last_sale_price
                 if cash_available - cost_of_trade >= reserve_cash:  # Check reserve cash requirement
+                    if stock.symbol in self.sold_stocks:  # Check if the stock has been sold in this run
+                        print(f"Stock {stock.symbol} was sold in this run, skipping buying operation")
+                        continue
                     cash_available -= cost_of_trade  # Update available cash
                     self.place_order(stock.symbol, qty, 'buy')
 
