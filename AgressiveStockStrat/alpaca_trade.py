@@ -42,6 +42,7 @@ class AlpacaTradingBot:
         self.trading_decision = TradingDecision()
         self.load_stock_data()
         self.sold_stocks = []  # Added to keep track of sold stocks in a single run
+        self.uninvested_cash = 0  # Track uninvested cash
 
     def load_stock_data(self):
         for stock in stock_data:
@@ -94,37 +95,23 @@ class AlpacaTradingBot:
         self.account = self.alpaca.get_account()
         portfolio_value = float(self.account.portfolio_value)
         reserve_cash = portfolio_value * 0.15
-        cash_available = float(self.account.cash)
+        cash_available = float(self.account.cash) - reserve_cash
         sorted_stocks, allocation_per_stock = self.trading_decision.get_sorted_stocks(self.selected_stocks)
         if get_diverse_stocks:
             sorted_stocks, allocation_per_stock = self.trading_decision.get_diverse_stocks(self.selected_stocks)
 
         self.sell_excess_holdings(sorted_stocks, allocation_per_stock)
-        cash_available = float(self.account.cash)
+        cash_available = float(self.account.cash) - reserve_cash
 
         for stock in sorted_stocks:
+            if stock.symbol in self.sold_stocks:  # Skip if the stock has been sold in this run
+                continue
             cash_per_stock = cash_available * allocation_per_stock
+            if cash_per_stock < stock.last_sale_price:
+                continue
             target_quantity = int(cash_per_stock / stock.last_sale_price)
-            
-            position = None
-            try:
-                position = self.alpaca.get_position(stock.symbol)
-            except:
-                pass
-            current_quantity = int(position.qty if position else 0)
-
-            if current_quantity < 0:
-                target_quantity = 0
-
-            if target_quantity > current_quantity:
-                qty = target_quantity - current_quantity
-                cost_of_trade = qty * stock.last_sale_price
-                if cash_available - cost_of_trade >= reserve_cash:  # Check reserve cash requirement
-                    if stock.symbol in self.sold_stocks:  # Check if the stock has been sold in this run
-                        print(f"Stock {stock.symbol} was sold in this run, skipping buying operation")
-                        continue
-                    cash_available -= cost_of_trade  # Update available cash
-                    self.place_order(stock.symbol, qty, 'buy')
+            cash_available -= target_quantity * stock.last_sale_price  # Update cash_available after each purchase
+            self.place_order(stock.symbol, target_quantity, 'buy')
 
 if __name__ == "__main__":
     bot = AlpacaTradingBot()

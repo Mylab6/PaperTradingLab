@@ -15,7 +15,7 @@ class TradingDecision:
             if hasattr(stock, 'Price'):
                 stock.last_sale_price = stock.Price
         sorted_stocks = sorted(stocks, key=lambda stock: stock.last_sale_price, reverse=True)[:top_n]
-        allocation_per_stock = min(0.15, 2.0 / len(sorted_stocks))
+        allocation_per_stock = min(0.20, 2.0 / len(sorted_stocks))
         return sorted_stocks, allocation_per_stock
 
     def get_diverse_stocks(self, stocks, top_n=11):
