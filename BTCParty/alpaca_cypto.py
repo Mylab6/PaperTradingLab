@@ -54,9 +54,9 @@ class AlpacaTrader:
             amount_per_coin = cash / len(top_cryptos)  # Allocate cash equally for each coin
             quantity = amount_per_coin / today_close  # Calculate quantity, allowing fractional amounts
 
-            if amount_per_coin < today_close:  # Skip this coin if not enough cash for at least 1 unit
-                print(f"Not enough cash to buy a fraction of {coin}, skipping...")
-                continue
+           # if amount_per_coin < today_close:  # Skip this coin if not enough cash for at least 1 unit
+            #    print(f"Not enough cash to buy a fraction of {coin}, skipping...")
+            #    continue
 
             try:
                 self.api.submit_order(
