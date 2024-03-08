@@ -14,7 +14,10 @@ api_url = os.getenv('ALPACA_API_URL', 'https://paper-api.alpaca.markets')
 class AlpacaTrader:
     def __init__(self, api_key, secret_key):
         self.api = tradeapi.REST(api_key, secret_key, base_url=api_url)
-
+    def fetch_all_cryptos(self):
+        """Fetch all available cryptocurrencies from Alpaca"""
+        assets = self.api.list_assets(asset_class='crypto')
+        return [asset.symbol for asset in assets if asset.tradable and asset.symbol.endswith("USD")]
     def fetch_historical_data(self, coins):
         end_date = datetime.now()
         start_date = end_date - timedelta(days=2)
@@ -42,29 +45,31 @@ class AlpacaTrader:
         for coin, pct_change in top_cryptos:
             print(f"{coin}: {pct_change * 100}% change")
             today_close = self.fetch_historical_data([coin])[coin].iloc[-1]['close']
-        
-            # Get account cash balance
+    
+        # Get account cash balance
             account = self.api.get_account()
             cash = float(account.cash)
 
-            quantity = cash / (5 * today_close)  # equal cash allocated for each coin
-            total_cost = today_close * quantity  # Total cost for this coin
+        # Calculate the quantity to buy (allowing fractional quantities)
+            amount_per_coin = cash / len(top_cryptos)  # Allocate cash equally for each coin
+            quantity = amount_per_coin / today_close  # Calculate quantity, allowing fractional amounts
 
-            if cash < total_cost:  # Skip this coin if not enough cash
-                print(f"Not enough cash to buy {coin}, skipping...")
+            if amount_per_coin < today_close:  # Skip this coin if not enough cash for at least 1 unit
+                print(f"Not enough cash to buy a fraction of {coin}, skipping...")
                 continue
 
             try:
                 self.api.submit_order(
-                    symbol=coin,
-                    qty=quantity,
-                    side='buy',
-                    type='market',
-                    time_in_force='gtc',
+                symbol=coin,
+                qty=round(quantity, 8),  # Round quantity to 8 decimal places, as a typical limit for cryptos
+                side='buy',
+                type='market',
+                time_in_force='gtc',
                 )
-                print(f"Order placed: {quantity} units of {coin} at {today_close} each")
+                print(f"Order placed: {round(quantity, 8)} units of {coin} at {today_close} each")
             except tradeapi.rest.APIError as e:
                 print(f"Error placing order for {coin}: {e}")
+
 
     def sell_unwanted_coins(self, top_cryptos):
         # Get a list of all current positions
@@ -88,8 +93,11 @@ def trade_crypto():
     trader = AlpacaTrader(api_key, secret_key)
 
     # Fetch historical data for each popular coin
-    formatted_coins = [coin[:-3] + "/USD" for coin in popular_coins]
-    hist_data = trader.fetch_historical_data(formatted_coins)
+   # popular_coins = ["BTCUSD", "ETHUSD", "XRPUSD", "LTCUSD", "BCHUSD"]
+    all_cryptos = trader.fetch_all_cryptos()
+    print(all_cryptos)
+  #  formatted_coins = [coin[:-3] + "/USD" for coin in popular_coins]
+    hist_data = trader.fetch_historical_data(all_cryptos)
 
     # Calculate percentage changes
     crypto_changes = trader.calculate_percentage_changes(hist_data)
@@ -100,6 +108,7 @@ def trade_crypto():
 
     # Sell coins that are no longer in the top 5
     trader.sell_unwanted_coins([crypto[0] for crypto in top_cryptos])
+    time.sleep(3)
 
     # Place orders for top cryptos
     trader.place_orders(top_cryptos)

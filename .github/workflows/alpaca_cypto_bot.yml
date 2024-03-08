@@ -2,7 +2,7 @@ name: Run Alpaca crypto bot
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # run at 9am everyday in EST
+    - cron: '*/30 * * * *' # run every 30 minutes
   workflow_dispatch:  # manual trigger
 
 jobs:
