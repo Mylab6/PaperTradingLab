@@ -20,7 +20,7 @@ class AlpacaTrader:
         return [asset.symbol for asset in assets if asset.tradable and asset.symbol.endswith("USD")]
     def fetch_historical_data(self, coins):
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=2)
+        start_date = end_date - timedelta(minutes=10)
         start_date_str = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         hist_data = {}
