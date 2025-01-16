@@ -1,4 +1,4 @@
-alpaca-trade-api==3.0.2
+alpaca-trade-api==3.2.0
 yfinance==0.2.24
 pandas==2.0.3
 # Has to be manually installed locally, so i'll do it on Github too
