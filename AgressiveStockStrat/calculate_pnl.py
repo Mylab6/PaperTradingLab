@@ -20,15 +20,40 @@ class PnLCalculator:
         """Get current account information"""
         try:
             account = self.alpaca.get_account()
-            return {
+            account_info = {
                 'account_id': account.id,
-                'buying_power': float(account.buying_power),
-                'cash': float(account.cash),
-                'portfolio_value': float(account.portfolio_value),
-                'equity': float(account.equity),
-                'day_trade_buying_power': float(account.day_trade_buying_power),
-                'pattern_day_trader': account.pattern_day_trader
+                'status': account.status,
+                'currency': getattr(account, 'currency', 'USD'),
+                'buying_power': float(account.buying_power) if account.buying_power else 0.0,
+                'cash': float(account.cash) if account.cash else 0.0,
+                'portfolio_value': float(account.portfolio_value) if account.portfolio_value else 0.0,
+                'equity': float(account.equity) if account.equity else 0.0,
+                'last_equity': float(getattr(account, 'last_equity', 0)) if hasattr(account, 'last_equity') else 0.0,
+                'trading_blocked': getattr(account, 'trading_blocked', False),
+                'transfers_blocked': getattr(account, 'transfers_blocked', False),
+                'account_blocked': getattr(account, 'account_blocked', False)
             }
+            
+            # Add optional fields if they exist
+            optional_fields = [
+                'day_trade_buying_power', 'daytrading_buying_power',
+                'pattern_day_trader', 'max_day_trade_buying_power',
+                'regt_buying_power', 'initial_margin', 'maintenance_margin',
+                'sma', 'multiplier'
+            ]
+            
+            for field in optional_fields:
+                if hasattr(account, field) and getattr(account, field) is not None:
+                    try:
+                        value = getattr(account, field)
+                        if isinstance(value, (int, float)):
+                            account_info[field] = float(value)
+                        else:
+                            account_info[field] = value
+                    except (ValueError, AttributeError):
+                        continue
+            
+            return account_info
         except Exception as e:
             print(f"Error getting account info: {e}")
             return None
@@ -42,14 +67,14 @@ class PnLCalculator:
             for position in positions:
                 position_data.append({
                     'symbol': position.symbol,
-                    'qty': float(position.qty),
+                    'qty': float(position.qty) if position.qty else 0.0,
                     'side': position.side,
-                    'market_value': float(position.market_value),
-                    'cost_basis': float(position.cost_basis),
-                    'unrealized_pl': float(position.unrealized_pl),
-                    'unrealized_plpc': float(position.unrealized_plpc),
-                    'avg_entry_price': float(position.avg_entry_price),
-                    'current_price': float(position.current_price)
+                    'market_value': float(position.market_value) if position.market_value else 0.0,
+                    'cost_basis': float(position.cost_basis) if position.cost_basis else 0.0,
+                    'unrealized_pl': float(position.unrealized_pl) if position.unrealized_pl else 0.0,
+                    'unrealized_plpc': float(position.unrealized_plpc) if position.unrealized_plpc else 0.0,
+                    'avg_entry_price': float(position.avg_entry_price) if position.avg_entry_price else 0.0,
+                    'current_price': float(getattr(position, 'current_price', 0)) if hasattr(position, 'current_price') else 0.0
                 })
             
             return position_data
@@ -66,15 +91,24 @@ class PnLCalculator:
             )
             
             history_data = []
-            if portfolio_history.timestamp and portfolio_history.equity:
+            if hasattr(portfolio_history, 'timestamp') and portfolio_history.timestamp and hasattr(portfolio_history, 'equity') and portfolio_history.equity:
                 for i, timestamp in enumerate(portfolio_history.timestamp):
-                    if i < len(portfolio_history.equity):
-                        history_data.append({
+                    if i < len(portfolio_history.equity) and portfolio_history.equity[i] is not None:
+                        history_entry = {
                             'timestamp': datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S'),
-                            'equity': portfolio_history.equity[i],
-                            'profit_loss': portfolio_history.profit_loss[i] if i < len(portfolio_history.profit_loss) else 0,
-                            'profit_loss_pct': portfolio_history.profit_loss_pct[i] if i < len(portfolio_history.profit_loss_pct) else 0
-                        })
+                            'equity': float(portfolio_history.equity[i])
+                        }
+                        
+                        # Add optional profit_loss and profit_loss_pct if available
+                        if hasattr(portfolio_history, 'profit_loss') and portfolio_history.profit_loss and i < len(portfolio_history.profit_loss):
+                            if portfolio_history.profit_loss[i] is not None:
+                                history_entry['profit_loss'] = float(portfolio_history.profit_loss[i])
+                        
+                        if hasattr(portfolio_history, 'profit_loss_pct') and portfolio_history.profit_loss_pct and i < len(portfolio_history.profit_loss_pct):
+                            if portfolio_history.profit_loss_pct[i] is not None:
+                                history_entry['profit_loss_pct'] = float(portfolio_history.profit_loss_pct[i])
+                        
+                        history_data.append(history_entry)
             
             return history_data
         except Exception as e:
@@ -92,19 +126,34 @@ class PnLCalculator:
             
             order_data = []
             for order in orders:
-                order_data.append({
+                order_entry = {
                     'id': order.id,
                     'symbol': order.symbol,
-                    'qty': float(order.qty) if order.qty else 0,
+                    'qty': float(order.qty) if order.qty else 0.0,
                     'side': order.side,
                     'order_type': order.order_type,
                     'status': order.status,
-                    'filled_qty': float(order.filled_qty) if order.filled_qty else 0,
-                    'filled_avg_price': float(order.filled_avg_price) if order.filled_avg_price else 0,
-                    'submitted_at': order.submitted_at.strftime('%Y-%m-%d %H:%M:%S') if order.submitted_at else '',
-                    'filled_at': order.filled_at.strftime('%Y-%m-%d %H:%M:%S') if order.filled_at else '',
-                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M:%S') if order.created_at else ''
-                })
+                    'filled_qty': float(order.filled_qty) if order.filled_qty else 0.0,
+                    'filled_avg_price': float(order.filled_avg_price) if order.filled_avg_price else 0.0,
+                }
+                
+                # Handle timestamps safely
+                if hasattr(order, 'submitted_at') and order.submitted_at:
+                    order_entry['submitted_at'] = order.submitted_at.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    order_entry['submitted_at'] = ''
+                    
+                if hasattr(order, 'filled_at') and order.filled_at:
+                    order_entry['filled_at'] = order.filled_at.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    order_entry['filled_at'] = ''
+                    
+                if hasattr(order, 'created_at') and order.created_at:
+                    order_entry['created_at'] = order.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    order_entry['created_at'] = ''
+                
+                order_data.append(order_entry)
             
             return order_data
         except Exception as e:
@@ -134,32 +183,38 @@ class PnLCalculator:
         total_market_value = sum([pos['market_value'] for pos in positions])
         total_cost_basis = sum([pos['cost_basis'] for pos in positions])
         
-        # Calculate realized PnL from filled orders
-        realized_pl = 0
-        filled_orders = [order for order in orders if order['status'] == 'filled']
+        # Calculate simple total P&L using account equity and last equity (if available)
+        current_equity = account_info['equity']
+        last_equity = account_info.get('last_equity', 0)
         
-        # Simple realized PnL calculation (buy orders negative, sell orders positive)
-        for order in filled_orders:
-            if order['side'] == 'sell':
-                realized_pl += order['filled_qty'] * order['filled_avg_price']
-            elif order['side'] == 'buy':
-                realized_pl -= order['filled_qty'] * order['filled_avg_price']
+        # If we have last_equity, use it for day P&L calculation
+        day_pl = current_equity - last_equity if last_equity > 0 else 0
+        
+        # Get filled orders for basic realized P&L estimation
+        filled_orders = [order for order in orders if order['status'] == 'filled']
         
         summary = {
             'calculation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'account_equity': account_info['equity'],
+            'account_equity': current_equity,
             'portfolio_value': account_info['portfolio_value'],
             'cash': account_info['cash'],
             'buying_power': account_info['buying_power'],
+            'day_pl': day_pl,
             'total_positions': len(positions),
             'total_market_value': total_market_value,
             'total_cost_basis': total_cost_basis,
             'total_unrealized_pl': total_unrealized_pl,
-            'estimated_realized_pl': realized_pl,
-            'total_estimated_pl': total_unrealized_pl + realized_pl,
             'total_orders': len(orders),
-            'filled_orders': len(filled_orders)
+            'filled_orders': len(filled_orders),
+            'account_status': account_info['status']
         }
+        
+        # Add optional account info to summary
+        optional_fields = ['day_trade_buying_power', 'pattern_day_trader', 'initial_margin', 
+                          'maintenance_margin', 'currency', 'trading_blocked', 'account_blocked']
+        for key in optional_fields:
+            if key in account_info:
+                summary[key] = account_info[key]
         
         return {
             'summary': summary,
@@ -230,10 +285,33 @@ class PnLCalculator:
         print("="*60)
         
         print(f"Calculation Date: {summary['calculation_date']}")
+        print(f"Account Status: {summary.get('account_status', 'N/A')}")
         print(f"Account Equity: ${summary['account_equity']:,.2f}")
         print(f"Portfolio Value: ${summary['portfolio_value']:,.2f}")
         print(f"Cash Available: ${summary['cash']:,.2f}")
         print(f"Buying Power: ${summary['buying_power']:,.2f}")
+        
+        if summary.get('day_pl', 0) != 0:
+            print(f"Day P&L: ${summary['day_pl']:,.2f}")
+        
+        # Print optional account info if available
+        optional_display = {
+            'day_trade_buying_power': 'Day Trade Buying Power',
+            'pattern_day_trader': 'Pattern Day Trader',
+            'initial_margin': 'Initial Margin',
+            'maintenance_margin': 'Maintenance Margin',
+            'currency': 'Account Currency'
+        }
+        
+        for key, label in optional_display.items():
+            if key in summary and summary[key] is not None:
+                if isinstance(summary[key], (int, float)):
+                    print(f"{label}: ${summary[key]:,.2f}")
+                else:
+                    print(f"{label}: {summary[key]}")
+        
+        if summary.get('trading_blocked') or summary.get('account_blocked'):
+            print(f"⚠️  Account Restrictions: Trading Blocked: {summary.get('trading_blocked', False)}, Account Blocked: {summary.get('account_blocked', False)}")
         
         print("\n" + "-"*40)
         print("POSITION SUMMARY")
@@ -248,16 +326,18 @@ class PnLCalculator:
         print("-"*40)
         print(f"Total Orders: {summary['total_orders']}")
         print(f"Filled Orders: {summary['filled_orders']}")
-        print(f"Estimated Realized P&L: ${summary['estimated_realized_pl']:,.2f}")
         
         print("\n" + "-"*40)
-        print("TOTAL P&L ESTIMATE")
+        print("PORTFOLIO PERFORMANCE")
         print("-"*40)
-        print(f"Total Estimated P&L: ${summary['total_estimated_pl']:,.2f}")
+        print(f"Total Unrealized P&L: ${summary['total_unrealized_pl']:,.2f}")
+        
+        if summary.get('day_pl', 0) != 0:
+            print(f"Day P&L: ${summary['day_pl']:,.2f}")
         
         if summary['total_cost_basis'] > 0:
-            total_return_pct = (summary['total_estimated_pl'] / summary['total_cost_basis']) * 100
-            print(f"Estimated Return %: {total_return_pct:.2f}%")
+            unrealized_return_pct = (summary['total_unrealized_pl'] / summary['total_cost_basis']) * 100
+            print(f"Unrealized Return %: {unrealized_return_pct:.2f}%")
         
         print("="*60)
 
