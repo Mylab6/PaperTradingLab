@@ -29,7 +29,7 @@ jobs:
       run: python AgressiveStockStrat/calculate_pnl.py
 
     - name: Upload PnL CSV Reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pnl-reports-${{ github.run_number }}
         path: |
