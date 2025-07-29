@@ -6,7 +6,10 @@ on:
 jobs:
   calculate_pnl:
     runs-on: ubuntu-latest
-    environment: Small
+    strategy:
+      matrix:
+        environment: [Small, Big]
+    environment: ${{ matrix.environment }}
 
     steps:
     - uses: actions/checkout@v2
@@ -21,17 +24,17 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f AgressiveStockStrat/requirements.txt ]; then pip install -r AgressiveStockStrat/requirements.txt; fi
 
-    - name: Calculate Portfolio PnL
+    - name: Calculate Portfolio PnL (${{ matrix.environment }})
       env:
         ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
         ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
         ALPACA_API_URL: ${{ secrets.ALPACA_API_URL }}
       run: python AgressiveStockStrat/calculate_pnl.py
 
-    - name: Upload PnL CSV Reports
+    - name: Upload PnL CSV Reports (${{ matrix.environment }})
       uses: actions/upload-artifact@v4
       with:
-        name: pnl-reports-${{ github.run_number }}
+        name: pnl-reports-${{ matrix.environment }}-${{ github.run_number }}
         path: |
           AgressiveStockStrat/pnl_summary_*.csv
           AgressiveStockStrat/positions_*.csv
@@ -41,11 +44,12 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
 
-    - name: Display PnL Summary in Logs
+    - name: Display PnL Summary in Logs (${{ matrix.environment }})
       if: always()
       run: |
-        echo "PnL Calculation completed. Check the uploaded artifacts for detailed CSV reports."
+        echo "PnL Calculation completed for ${{ matrix.environment }} environment."
+        echo "Check the uploaded artifacts for detailed CSV reports."
         if [ -f AgressiveStockStrat/pnl_summary_*.csv ]; then
-          echo "Generated files:"
+          echo "Generated files for ${{ matrix.environment }}:"
           ls -la AgressiveStockStrat/pnl_*.csv AgressiveStockStrat/positions_*.csv AgressiveStockStrat/portfolio_*.csv AgressiveStockStrat/activities_*.csv AgressiveStockStrat/orders_*.csv 2>/dev/null || echo "Some CSV files may not have been generated."
         fi
