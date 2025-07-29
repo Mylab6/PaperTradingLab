@@ -36,6 +36,7 @@ jobs:
           AgressiveStockStrat/pnl_summary_*.csv
           AgressiveStockStrat/positions_*.csv
           AgressiveStockStrat/portfolio_history_*.csv
+          AgressiveStockStrat/activities_*.csv
           AgressiveStockStrat/orders_*.csv
         retention-days: 30
         if-no-files-found: warn
@@ -46,5 +47,5 @@ jobs:
         echo "PnL Calculation completed. Check the uploaded artifacts for detailed CSV reports."
         if [ -f AgressiveStockStrat/pnl_summary_*.csv ]; then
           echo "Generated files:"
-          ls -la AgressiveStockStrat/pnl_*.csv AgressiveStockStrat/positions_*.csv AgressiveStockStrat/portfolio_*.csv AgressiveStockStrat/orders_*.csv 2>/dev/null || echo "Some CSV files may not have been generated."
+          ls -la AgressiveStockStrat/pnl_*.csv AgressiveStockStrat/positions_*.csv AgressiveStockStrat/portfolio_*.csv AgressiveStockStrat/activities_*.csv AgressiveStockStrat/orders_*.csv 2>/dev/null || echo "Some CSV files may not have been generated."
         fi

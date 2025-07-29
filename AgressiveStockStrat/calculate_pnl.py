@@ -115,6 +115,53 @@ class PnLCalculator:
             print(f"Error getting portfolio history: {e}")
             return []
     
+    def get_account_activities(self, activity_types=None, page_size=1000):
+        """Get account activities for P&L calculation"""
+        try:
+            # Get all account activities
+            if activity_types is None:
+                activity_types = ['FILL', 'DIV', 'INTEREST', 'FEE', 'SOSO', 'CSO', 'CSD']
+            
+            all_activities = []
+            page_token = None
+            
+            # Paginate through all activities
+            for _ in range(10):  # Limit to prevent infinite loops
+                activities = self.alpaca.get_account_activities(
+                    activity_types=activity_types,
+                    page_size=page_size,
+                    page_token=page_token
+                )
+                
+                if not activities:
+                    break
+                
+                for activity in activities:
+                    activity_data = {
+                        'id': activity.id,
+                        'activity_type': activity.activity_type,
+                        'date': activity.date.strftime('%Y-%m-%d') if activity.date else '',
+                        'symbol': getattr(activity, 'symbol', ''),
+                        'side': getattr(activity, 'side', ''),
+                        'qty': float(getattr(activity, 'qty', 0)) if hasattr(activity, 'qty') and getattr(activity, 'qty') else 0.0,
+                        'price': float(getattr(activity, 'price', 0)) if hasattr(activity, 'price') and getattr(activity, 'price') else 0.0,
+                        'net_amount': float(getattr(activity, 'net_amount', 0)) if hasattr(activity, 'net_amount') and getattr(activity, 'net_amount') else 0.0,
+                        'description': getattr(activity, 'description', '')
+                    }
+                    all_activities.append(activity_data)
+                
+                # Check if there are more pages
+                if len(activities) < page_size:
+                    break
+                
+                # Get the page token for next page (this might vary based on API version)
+                page_token = getattr(activities[-1], 'id', None)
+            
+            return all_activities
+        except Exception as e:
+            print(f"Error getting account activities: {e}")
+            return []
+    
     def get_orders(self, status='all', limit=500):
         """Get recent orders"""
         try:
@@ -159,10 +206,99 @@ class PnLCalculator:
         except Exception as e:
             print(f"Error getting orders: {e}")
             return []
+        """Get recent orders"""
+        try:
+            orders = self.alpaca.list_orders(
+                status=status,
+                limit=limit,
+                nested=True
+            )
+            
+            order_data = []
+            for order in orders:
+                order_entry = {
+                    'id': order.id,
+                    'symbol': order.symbol,
+                    'qty': float(order.qty) if order.qty else 0.0,
+                    'side': order.side,
+                    'order_type': order.order_type,
+                    'status': order.status,
+                    'filled_qty': float(order.filled_qty) if order.filled_qty else 0.0,
+                    'filled_avg_price': float(order.filled_avg_price) if order.filled_avg_price else 0.0,
+                }
+                
+                # Handle timestamps safely
+                if hasattr(order, 'submitted_at') and order.submitted_at:
+                    order_entry['submitted_at'] = order.submitted_at.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    order_entry['submitted_at'] = ''
+                    
+                if hasattr(order, 'filled_at') and order.filled_at:
+                    order_entry['filled_at'] = order.filled_at.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    order_entry['filled_at'] = ''
+                    
+                if hasattr(order, 'created_at') and order.created_at:
+                    order_entry['created_at'] = order.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    order_entry['created_at'] = ''
+                
+                order_data.append(order_entry)
+            
+            return order_data
+        except Exception as e:
+            print(f"Error getting orders: {e}")
+            return []
+    
+    def calculate_lifetime_pnl(self, activities):
+        """Calculate lifetime realized P&L from account activities"""
+        realized_pnl = 0.0
+        dividends = 0.0
+        interest = 0.0
+        fees = 0.0
+        deposits = 0.0
+        withdrawals = 0.0
+        
+        # Track cash flows and trading activities
+        for activity in activities:
+            activity_type = activity['activity_type']
+            net_amount = activity['net_amount']
+            
+            if activity_type == 'FILL':
+                # Trading fills - this includes realized P&L from completed trades
+                realized_pnl += net_amount
+            elif activity_type == 'DIV':
+                # Dividends received
+                dividends += net_amount
+            elif activity_type == 'INTEREST':
+                # Interest earned
+                interest += net_amount
+            elif activity_type == 'FEE':
+                # Fees paid
+                fees += net_amount  # net_amount is usually negative for fees
+            elif activity_type in ['SOSO', 'CSO']:
+                # Stock splits, spin-offs
+                pass  # These don't affect P&L directly
+            elif activity_type == 'CSD':
+                # Cash deposits/withdrawals
+                if net_amount > 0:
+                    deposits += net_amount
+                else:
+                    withdrawals += abs(net_amount)
+        
+        return {
+            'realized_pnl': realized_pnl,
+            'dividends': dividends,
+            'interest': interest,
+            'fees': fees,
+            'deposits': deposits,
+            'withdrawals': withdrawals,
+            'net_deposits': deposits - withdrawals
+        }
     
     def calculate_total_pnl(self):
-        """Calculate comprehensive PnL summary"""
-        print("Calculating Total PnL...")
+        """Calculate comprehensive lifetime P&L summary"""
+        print("Calculating Total Lifetime PnL...")
         
         # Get account info
         account_info = self.get_account_info()
@@ -175,38 +311,79 @@ class PnLCalculator:
         # Get portfolio history
         portfolio_history = self.get_portfolio_history()
         
+        # Get account activities for lifetime P&L calculation
+        print("Fetching account activities...")
+        activities = self.get_account_activities()
+        
         # Get recent orders
         orders = self.get_orders()
         
-        # Calculate summary statistics
+        # Calculate position statistics
         total_unrealized_pl = sum([pos['unrealized_pl'] for pos in positions])
         total_market_value = sum([pos['market_value'] for pos in positions])
         total_cost_basis = sum([pos['cost_basis'] for pos in positions])
         
-        # Calculate simple total P&L using account equity and last equity (if available)
-        current_equity = account_info['equity']
-        last_equity = account_info.get('last_equity', 0)
+        # Calculate lifetime P&L from activities
+        lifetime_pnl = self.calculate_lifetime_pnl(activities)
         
-        # If we have last_equity, use it for day P&L calculation
+        # Calculate total lifetime P&L
+        # Total P&L = Current Equity - Net Deposits
+        current_equity = account_info['equity']
+        net_deposits = lifetime_pnl['net_deposits']
+        total_lifetime_pnl = current_equity - net_deposits
+        
+        # Alternative calculation: Realized P&L + Unrealized P&L + Dividends + Interest + Fees
+        calculated_lifetime_pnl = (lifetime_pnl['realized_pnl'] + 
+                                 total_unrealized_pl + 
+                                 lifetime_pnl['dividends'] + 
+                                 lifetime_pnl['interest'] + 
+                                 lifetime_pnl['fees'])
+        
+        # Day P&L calculation
+        last_equity = account_info.get('last_equity', 0)
         day_pl = current_equity - last_equity if last_equity > 0 else 0
         
-        # Get filled orders for basic realized P&L estimation
+        # Get filled orders for reference
         filled_orders = [order for order in orders if order['status'] == 'filled']
         
         summary = {
             'calculation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            
+            # Account basics
             'account_equity': current_equity,
             'portfolio_value': account_info['portfolio_value'],
             'cash': account_info['cash'],
             'buying_power': account_info['buying_power'],
-            'day_pl': day_pl,
+            'account_status': account_info['status'],
+            
+            # Position summary
             'total_positions': len(positions),
             'total_market_value': total_market_value,
             'total_cost_basis': total_cost_basis,
             'total_unrealized_pl': total_unrealized_pl,
+            
+            # Lifetime P&L breakdown
+            'net_deposits': net_deposits,
+            'total_deposits': lifetime_pnl['deposits'],
+            'total_withdrawals': lifetime_pnl['withdrawals'],
+            'realized_pnl_from_trades': lifetime_pnl['realized_pnl'],
+            'dividends_received': lifetime_pnl['dividends'],
+            'interest_earned': lifetime_pnl['interest'],
+            'fees_paid': lifetime_pnl['fees'],
+            
+            # Total lifetime P&L calculations
+            'total_lifetime_pnl_simple': total_lifetime_pnl,
+            'total_lifetime_pnl_detailed': calculated_lifetime_pnl,
+            
+            # Performance metrics
+            'lifetime_return_pct': (total_lifetime_pnl / net_deposits * 100) if net_deposits > 0 else 0,
+            'unrealized_return_pct': (total_unrealized_pl / total_cost_basis * 100) if total_cost_basis > 0 else 0,
+            
+            # Daily and activity stats
+            'day_pl': day_pl,
+            'total_activities': len(activities),
             'total_orders': len(orders),
-            'filled_orders': len(filled_orders),
-            'account_status': account_info['status']
+            'filled_orders': len(filled_orders)
         }
         
         # Add optional account info to summary
@@ -220,8 +397,10 @@ class PnLCalculator:
             'summary': summary,
             'positions': positions,
             'portfolio_history': portfolio_history,
+            'activities': activities,
             'orders': orders,
-            'account_info': account_info
+            'account_info': account_info,
+            'lifetime_pnl_breakdown': lifetime_pnl
         }
     
     def save_to_csv(self, pnl_data, output_dir='./'):
@@ -258,6 +437,13 @@ class PnLCalculator:
             df_history.to_csv(history_file, index=False)
             print(f"Portfolio history saved to: {history_file}")
         
+        # Save activities
+        if pnl_data['activities']:
+            activities_file = os.path.join(output_dir, f'activities_{timestamp}.csv')
+            df_activities = pd.DataFrame(pnl_data['activities'])
+            df_activities.to_csv(activities_file, index=False)
+            print(f"Activities saved to: {activities_file}")
+        
         # Save orders
         if pnl_data['orders']:
             orders_file = os.path.join(output_dir, f'orders_{timestamp}.csv')
@@ -269,6 +455,7 @@ class PnLCalculator:
             'summary_file': summary_file,
             'positions_file': positions_file if pnl_data['positions'] else None,
             'history_file': history_file if pnl_data['portfolio_history'] else None,
+            'activities_file': activities_file if pnl_data['activities'] else None,
             'orders_file': orders_file if pnl_data['orders'] else None
         }
     
@@ -281,7 +468,7 @@ class PnLCalculator:
         summary = pnl_data['summary']
         
         print("\n" + "="*60)
-        print("PORTFOLIO PROFIT & LOSS SUMMARY")
+        print("PORTFOLIO LIFETIME PROFIT & LOSS SUMMARY")
         print("="*60)
         
         print(f"Calculation Date: {summary['calculation_date']}")
@@ -294,6 +481,29 @@ class PnLCalculator:
         if summary.get('day_pl', 0) != 0:
             print(f"Day P&L: ${summary['day_pl']:,.2f}")
         
+        print("\n" + "-"*40)
+        print("LIFETIME CASH FLOWS")
+        print("-"*40)
+        print(f"Total Deposits: ${summary['total_deposits']:,.2f}")
+        print(f"Total Withdrawals: ${summary['total_withdrawals']:,.2f}")
+        print(f"Net Deposits: ${summary['net_deposits']:,.2f}")
+        
+        print("\n" + "-"*40)
+        print("LIFETIME P&L BREAKDOWN")
+        print("-"*40)
+        print(f"Realized P&L from Trades: ${summary['realized_pnl_from_trades']:,.2f}")
+        print(f"Current Unrealized P&L: ${summary['total_unrealized_pl']:,.2f}")
+        print(f"Dividends Received: ${summary['dividends_received']:,.2f}")
+        print(f"Interest Earned: ${summary['interest_earned']:,.2f}")
+        print(f"Fees Paid: ${summary['fees_paid']:,.2f}")
+        
+        print("\n" + "-"*40)
+        print("TOTAL LIFETIME P&L")
+        print("-"*40)
+        print(f"Total Lifetime P&L: ${summary['total_lifetime_pnl_simple']:,.2f}")
+        print(f"Detailed Calculation: ${summary['total_lifetime_pnl_detailed']:,.2f}")
+        print(f"Lifetime Return: {summary['lifetime_return_pct']:.2f}%")
+        
         # Print optional account info if available
         optional_display = {
             'day_trade_buying_power': 'Day Trade Buying Power',
@@ -303,6 +513,9 @@ class PnLCalculator:
             'currency': 'Account Currency'
         }
         
+        print("\n" + "-"*40)
+        print("ACCOUNT DETAILS")
+        print("-"*40)
         for key, label in optional_display.items():
             if key in summary and summary[key] is not None:
                 if isinstance(summary[key], (int, float)):
@@ -319,25 +532,15 @@ class PnLCalculator:
         print(f"Total Positions: {summary['total_positions']}")
         print(f"Total Market Value: ${summary['total_market_value']:,.2f}")
         print(f"Total Cost Basis: ${summary['total_cost_basis']:,.2f}")
-        print(f"Total Unrealized P&L: ${summary['total_unrealized_pl']:,.2f}")
+        if summary['total_cost_basis'] > 0:
+            print(f"Unrealized Return %: {summary['unrealized_return_pct']:.2f}%")
         
         print("\n" + "-"*40)
-        print("TRADING SUMMARY")
+        print("ACTIVITY SUMMARY")
         print("-"*40)
+        print(f"Total Account Activities: {summary['total_activities']}")
         print(f"Total Orders: {summary['total_orders']}")
         print(f"Filled Orders: {summary['filled_orders']}")
-        
-        print("\n" + "-"*40)
-        print("PORTFOLIO PERFORMANCE")
-        print("-"*40)
-        print(f"Total Unrealized P&L: ${summary['total_unrealized_pl']:,.2f}")
-        
-        if summary.get('day_pl', 0) != 0:
-            print(f"Day P&L: ${summary['day_pl']:,.2f}")
-        
-        if summary['total_cost_basis'] > 0:
-            unrealized_return_pct = (summary['total_unrealized_pl'] / summary['total_cost_basis']) * 100
-            print(f"Unrealized Return %: {unrealized_return_pct:.2f}%")
         
         print("="*60)
 
