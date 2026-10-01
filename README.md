@@ -25,6 +25,7 @@ The bot has been running unattended on its GitHub Actions schedule since July 20
 | **$7,595.04** | **$9,858.97** |
 
 That's roughly **+30% over about three years** of paper trading. It's a paper account and the strategy is simple, so don't read much into the number. What matters more is that the system has kept running reliably for three years without anyone touching it.
+Good ole Github Actions!
 
 ## Running it
 
