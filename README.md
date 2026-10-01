@@ -15,6 +15,17 @@ This is a small project I wrote as a learning exercise. It paper-trades automati
 
 The trading logic is deliberately simple, and frankly it's a guess. The point of the project is the engineering: scheduled execution, broker API integration, secrets handling, and reporting. It is not trying to find an edge.
 
+## Results (paper account)
+
+The bot has been running unattended on its GitHub Actions schedule since July 2023.
+
+| July 28, 2023 | October 1, 2026 |
+|---|---|
+| ![Portfolio value on July 28, 2023: $7,595.04](docs/images/portfolio-jul-2023.png) | ![Portfolio value on October 1, 2026: $9,858.97](docs/images/portfolio-oct-2026.png) |
+| **$7,595.04** | **$9,858.97** |
+
+That's roughly **+30% over about three years** of paper trading. It's a paper account and the strategy is simple, so don't read much into the number. What matters more is that the system has kept running reliably for three years without anyone touching it.
+
 ## Running it
 
 Credentials come only from environment variables, which in this setup are GitHub Actions secrets:
